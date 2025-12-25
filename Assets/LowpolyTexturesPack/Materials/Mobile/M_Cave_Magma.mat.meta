@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 520938bf13624b04fb159c3db7351aca
+timeCreated: 1551206137
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 140717
+  packageName: Lowpoly Textures Pack
+  packageVersion: 1.0.1
+  assetPath: Assets/LowpolyTexturesPack/Materials/Mobile/M_Cave_Magma.mat
+  uploadId: 803582

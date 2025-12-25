@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 5fb072cb6bfc5e343be27f17187cefae
+timeCreated: 1551206217
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 140717
+  packageName: Lowpoly Textures Pack
+  packageVersion: 1.0.1
+  assetPath: Assets/LowpolyTexturesPack/Materials/Mobile/M_Winter_FrozenGround.mat
+  uploadId: 803582
