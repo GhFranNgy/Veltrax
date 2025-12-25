@@ -8,7 +8,11 @@ public class AK47 : MonoBehaviour
     [SerializeField] private Transform gunHolder;
     [SerializeField] private Transform muzzlePoint;
     [SerializeField] private Transform shellEjectPoint;
+
+    [Header("=== SLIDE / BOLT ===")]
     [SerializeField] private Transform slideTransform;
+    [SerializeField] private Transform slideEndTransform;
+    [SerializeField] private float slideReturnSpeed = 18f;
 
     [Header("=== PREFABS ===")]
     [SerializeField] private GameObject shellCasingPrefab;
@@ -17,8 +21,7 @@ public class AK47 : MonoBehaviour
     [Header("=== AUDIO ===")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip shootSound;
-    [Range(0f, 1f)]
-    [SerializeField] private float shootVolume = 0.8f;
+    [Range(0f, 1f)] [SerializeField] private float shootVolume = 0.8f;
 
     [Header("=== WEAPON POSITIONS ===")]
     [SerializeField] private Transform hipPosition;
@@ -37,10 +40,6 @@ public class AK47 : MonoBehaviour
     [SerializeField] private float swayAmount = 1.5f;
     [SerializeField] private float swaySmooth = 6f;
 
-    [Header("=== SLIDE SETTINGS ===")]
-    [SerializeField] private float slideKickDistance = 0.08f;
-    [SerializeField] private float slideReturnSpeed = 18f;
-
     [Header("=== MOVEMENT ===")]
     [SerializeField] private float positionLerpSpeed = 8f;
 
@@ -49,19 +48,22 @@ public class AK47 : MonoBehaviour
     private float nextFireTime;
 
     private Quaternion initialRotation;
-    private Vector3 slideStartPos;
-    private Vector3 slideBackPos;
+    private Vector3 slideStartLocalPos;
+    private Vector3 slideEndLocalPos;
 
     void Start()
     {
         currentAmmo = magazineSize;
         initialRotation = transform.localRotation;
 
-        if (slideTransform)
+        if (slideTransform && slideEndTransform)
         {
-            slideStartPos = slideTransform.localPosition;
-            slideBackPos = slideStartPos - Vector3.forward * slideKickDistance;
+            slideStartLocalPos = slideTransform.localPosition;
+            slideEndLocalPos = slideEndTransform.localPosition;
         }
+
+        // Prevent shooting immediately at start
+        nextFireTime = Time.time + 0.1f;
     }
 
     void Update()
@@ -71,7 +73,7 @@ public class AK47 : MonoBehaviour
         HandleInput();
         HandleWeaponSway();
         HandleWeaponPosition();
-        ReturnSlide();
+        ReturnSlideForward();
     }
 
     void HandleInput()
@@ -88,11 +90,14 @@ public class AK47 : MonoBehaviour
         if (currentAmmo <= 0) return;
 
         currentAmmo--;
-        nextFireTime = Time.time + 60f / fireRateRPM;
+        nextFireTime = Time.time + (60f / fireRateRPM);
 
-        // Raycast
-        if (Physics.Raycast(playerCamera.transform.position,
-            playerCamera.transform.forward, out RaycastHit hit, range))
+        // Raycast (hitscan)
+        if (Physics.Raycast(
+            playerCamera.transform.position,
+            playerCamera.transform.forward,
+            out RaycastHit hit,
+            range))
         {
             // hit.collider.GetComponent<Health>()?.TakeDamage(damage);
         }
@@ -100,22 +105,29 @@ public class AK47 : MonoBehaviour
         // Camera recoil
         playerCamera.transform.Rotate(-recoilKick, 0f, 0f);
 
-        // Slide kick
-        if (slideTransform)
-            slideTransform.localPosition = slideBackPos;
+        // Slide moves back
+        if (slideTransform && slideEndTransform)
+            slideTransform.localPosition = slideEndLocalPos;
 
-        // Shell casing
+        // Shell casing ejection
         if (shellCasingPrefab && shellEjectPoint)
         {
             GameObject shell = Instantiate(
                 shellCasingPrefab,
                 shellEjectPoint.position,
-                shellEjectPoint.rotation
+                Quaternion.LookRotation(playerCamera.transform.forward)
             );
 
             Rigidbody rb = shell.GetComponent<Rigidbody>();
             if (rb)
-                rb.AddForce(shellEjectPoint.right * Random.Range(1.5f, 2.5f), ForceMode.Impulse);
+            {
+                Vector3 ejectDirection =
+                    shellEjectPoint.right * Random.Range(1.5f, 2.5f) +
+                    shellEjectPoint.forward * Random.Range(0.2f, 0.4f);
+
+                rb.AddForce(ejectDirection, ForceMode.Impulse);
+                rb.AddTorque(Random.insideUnitSphere * 1.5f, ForceMode.Impulse);
+            }
 
             Destroy(shell, 5f);
         }
@@ -137,13 +149,13 @@ public class AK47 : MonoBehaviour
             audioSource.PlayOneShot(shootSound, shootVolume);
     }
 
-    void ReturnSlide()
+    void ReturnSlideForward()
     {
-        if (!slideTransform) return;
+        if (!slideTransform || !slideEndTransform) return;
 
         slideTransform.localPosition = Vector3.Lerp(
             slideTransform.localPosition,
-            slideStartPos,
+            slideStartLocalPos,
             Time.deltaTime * slideReturnSpeed
         );
     }
@@ -163,12 +175,12 @@ public class AK47 : MonoBehaviour
         float mouseX = Input.GetAxis("Mouse X");
         float mouseY = Input.GetAxis("Mouse Y");
 
-        Vector3 sway = new Vector3(-mouseY, mouseX, 0f) * swayAmount;
-        Quaternion targetRot = Quaternion.Euler(sway);
+        Vector3 sway = new Vector3(mouseY, -mouseX, 0f) * swayAmount;
+        Quaternion targetRotation = Quaternion.Euler(sway);
 
         transform.localRotation = Quaternion.Slerp(
             transform.localRotation,
-            targetRot * initialRotation,
+            targetRotation * initialRotation,
             Time.deltaTime * swaySmooth
         );
     }
