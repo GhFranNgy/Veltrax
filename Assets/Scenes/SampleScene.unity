@@ -1499,8 +1499,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8316983065420468219}
+  - component: {fileID: 8316983065420468220}
   m_Layer: 0
-  m_Name: NestedParent_Unpack
+  m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2385,6 +2386,18 @@ Transform:
   - {fileID: 9040699950711851104}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8316983065420468220
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5467685200689257835}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e508ac141accfe4d9c90fdecf910e84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Movement
 --- !u!4 &9040699950711851104
 Transform:
   m_ObjectHideFlags: 0
