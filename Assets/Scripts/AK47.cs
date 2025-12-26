@@ -16,6 +16,7 @@ public class AK47 : MonoBehaviour
     [SerializeField] private Transform gunHolder;
     [SerializeField] private Transform muzzlePoint;
     [SerializeField] private Transform shellEjectPoint;
+    [SerializeField] private EasyPeasyFirstPersonController.FirstPersonController playerController; // Reference to FPS controller
 
     [Header("=== SLIDE / BOLT ===")]
     [SerializeField] private Transform slideTransform;
@@ -30,8 +31,10 @@ public class AK47 : MonoBehaviour
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip shootSound;
     [SerializeField] private AudioClip reloadSound;
-    [Range(0f, 1f)] [SerializeField] private float shootVolume = 0.8f;
-    [Range(0f, 1f)] [SerializeField] private float reloadVolume = 0.8f;
+    [Range(0f, 1f)]
+    [SerializeField] private float shootVolume = 0.8f;
+    [Range(0f, 1f)]
+    [SerializeField] private float reloadVolume = 0.8f;
 
     [Header("=== WEAPON POSITIONS ===")]
     [SerializeField] private Transform hipPosition;
@@ -51,10 +54,8 @@ public class AK47 : MonoBehaviour
     [SerializeField] private float recoilRecoverySpeed = 8f;
 
     [Header("=== AIMING SETTINGS ===")]
-    [Range(0f,1f)]
-    public float aimingRecoilMultiplier = 0.5f; // Reduce recoil when aiming
-    [Range(0f,1f)]
-    public float aimingBobMultiplier = 0.3f; // Reduce bobbing when aiming
+    [Range(0f,1f)] public float aimingRecoilMultiplier = 0.5f; // Reduce recoil when aiming
+    [Range(0f,1f)] public float aimingBobMultiplier = 0.3f; // Reduce bobbing when aiming
 
     [Header("=== SWAY ===")]
     [SerializeField] private float swayAmount = 1.5f;
@@ -84,7 +85,6 @@ public class AK47 : MonoBehaviour
     private Vector3 targetRecoilRotation;
 
     private KeyCode fireKey, aimKey, reloadKey, runKey, switchFireModeKey;
-
     private float bobTimer;
     private Vector3 initialGunLocalPos;
 
@@ -109,6 +109,7 @@ public class AK47 : MonoBehaviour
         }
 
         nextFireTime = Time.time;
+
         if (gunHolder != null) initialGunLocalPos = gunHolder.localPosition;
     }
 
@@ -130,7 +131,8 @@ public class AK47 : MonoBehaviour
     {
         if (!Input.GetKey(fireKey)) canShoot = true;
 
-        if (Input.GetKeyDown(reloadKey)) StartCoroutine(Reload());
+        if (Input.GetKeyDown(reloadKey))
+            StartCoroutine(Reload());
 
         if (fireMode == FireMode.Single)
         {
@@ -152,10 +154,8 @@ public class AK47 : MonoBehaviour
         currentAmmo--;
         nextFireTime = Time.time + (60f / fireRateRPM);
 
-        // Determine aiming multiplier
         float multiplier = Input.GetKey(aimKey) ? aimingRecoilMultiplier : 1f;
 
-        // Recoil
         targetRecoilPosition += Vector3.back * recoilKickBack * multiplier;
         targetRecoilRotation += new Vector3(
             -recoilRotation * multiplier,
@@ -163,11 +163,9 @@ public class AK47 : MonoBehaviour
             0f
         );
 
-        // Slide
         if (slideTransform && slideEndTransform)
             slideTransform.localPosition = slideEndLocalPos;
 
-        // Shell ejection
         if (shellCasingPrefab && shellEjectPoint)
         {
             Quaternion shellRot = Quaternion.LookRotation(-playerCamera.transform.forward);
@@ -175,15 +173,13 @@ public class AK47 : MonoBehaviour
             Rigidbody rb = shell.GetComponent<Rigidbody>();
             if (rb)
             {
-                Vector3 ejectDir = shellEjectPoint.right * Random.Range(1.8f, 2.6f) +
-                                    shellEjectPoint.forward * 0.3f;
+                Vector3 ejectDir = shellEjectPoint.right * Random.Range(1.8f, 2.6f) + shellEjectPoint.forward * 0.3f;
                 rb.AddForce(ejectDir, ForceMode.Impulse);
                 rb.AddTorque(Random.insideUnitSphere * 2f, ForceMode.Impulse);
             }
             Destroy(shell, 5f);
         }
 
-        // Muzzle flash
         if (muzzleFlashPrefab && muzzlePoint)
         {
             GameObject flash = Instantiate(muzzleFlashPrefab, muzzlePoint.position, muzzlePoint.rotation, muzzlePoint);
@@ -199,8 +195,12 @@ public class AK47 : MonoBehaviour
         if (currentAmmo == magazineSize || isReloading) yield break;
 
         isReloading = true;
-        if (audioSource && reloadSound) audioSource.PlayOneShot(reloadSound, reloadVolume);
+
+        if (audioSource && reloadSound)
+            audioSource.PlayOneShot(reloadSound, reloadVolume);
+
         yield return new WaitForSeconds(reloadTime);
+
         currentAmmo = magazineSize;
         isReloading = false;
     }
@@ -209,7 +209,6 @@ public class AK47 : MonoBehaviour
     {
         float mouseX = Input.GetAxis("Mouse X");
         float mouseY = Input.GetAxis("Mouse Y");
-
         Vector3 sway = new Vector3(mouseY, -mouseX, 0f) * swayAmount;
         Quaternion targetRot = Quaternion.Euler(sway);
         transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRot * initialWeaponRotation, Time.deltaTime * swaySmooth);
@@ -217,7 +216,6 @@ public class AK47 : MonoBehaviour
 
     void HandleRecoilAndPosition()
     {
-        // Smooth recoil recovery
         currentRecoilPosition = Vector3.Lerp(currentRecoilPosition, targetRecoilPosition, recoilRecoverySpeed * Time.deltaTime);
         currentRecoilRotation = Vector3.Lerp(currentRecoilRotation, targetRecoilRotation, recoilRecoverySpeed * Time.deltaTime);
 
@@ -225,41 +223,37 @@ public class AK47 : MonoBehaviour
         bool aiming = Input.GetKey(aimKey);
         bool running = Input.GetKey(runKey) && Input.GetAxis("Vertical") > 0;
 
-        if (isReloading && reloadPosition != null)
-            target = reloadPosition;
-        else if (running)
-            target = runPosition;
-        else if (aiming)
-            target = aimPosition;
-        else
-            target = hipPosition;
+        if (isReloading && reloadPosition != null) target = reloadPosition;
+        else if (running) target = runPosition;
+        else if (aiming) target = aimPosition;
+        else target = hipPosition;
 
         Vector3 targetPos = target.localPosition + currentRecoilPosition;
         Quaternion targetRot = target.localRotation * Quaternion.Euler(currentRecoilRotation);
 
-        // Handle bobbing only when moving
-        float moveInput = Mathf.Abs(Input.GetAxis("Vertical")) + Mathf.Abs(Input.GetAxis("Horizontal"));
-        if (moveInput > 0.01f)
+        // Handle bobbing only when moving AND grounded
+        if (playerController != null && playerController.isGrounded)
         {
-            float speed = running ? 1.5f : 1f;
-            if (aiming) speed *= 0.5f;
+            float moveInput = Mathf.Abs(Input.GetAxis("Vertical")) + Mathf.Abs(Input.GetAxis("Horizontal"));
+            if (moveInput > 0.01f)
+            {
+                float speed = running ? 1.5f : 1f;
+                if (aiming) speed *= 0.5f;
 
-            float bobAmount = walkBobAmount;
-            if (running) bobAmount = runBobAmount;
-            if (aiming) bobAmount = aimBobAmount * aimingBobMultiplier; // Reduce bob when aiming
+                float bobAmount = walkBobAmount;
+                if (running) bobAmount = runBobAmount;
+                if (aiming) bobAmount = aimBobAmount * aimingBobMultiplier;
 
-            bobTimer += Time.deltaTime * bobSpeed * speed;
-
-            Vector3 bobOffset = new Vector3(
-                Mathf.Sin(bobTimer) * bobAmount,
-                Mathf.Cos(bobTimer * 2) * bobAmount,
-                0f
-            );
-
-            targetPos += bobOffset;
+                bobTimer += Time.deltaTime * bobSpeed * speed;
+                Vector3 bobOffset = new Vector3(
+                    Mathf.Sin(bobTimer) * bobAmount,
+                    Mathf.Cos(bobTimer * 2) * bobAmount,
+                    0f
+                );
+                targetPos += bobOffset;
+            }
         }
 
-        // Apply position and rotation
         gunHolder.localPosition = Vector3.Lerp(gunHolder.localPosition, targetPos, Time.deltaTime * positionLerpSpeed);
         gunHolder.localRotation = Quaternion.Slerp(gunHolder.localRotation, targetRot, Time.deltaTime * positionLerpSpeed);
 
