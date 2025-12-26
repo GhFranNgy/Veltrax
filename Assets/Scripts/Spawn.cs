@@ -9,8 +9,8 @@ public class Spawn : MonoBehaviour
     //Follow-Target, speed, Abstand
     public Transform player;
     public float speed;
-    public float separationDistance = 1.2f; 
-    public float separationForce = 2f;
+    public float separationDistance = 0.5f; 
+    public float separationForce = 1f;
 
     private GameObject[] Enemies;
 
