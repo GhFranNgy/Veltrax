@@ -401,6 +401,88 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &488727552
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1346326487}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -462.67157
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 28
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 18.68341
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_Name
+      value: Characters_Zombie_SuitMan_1
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      propertyPath: m_AnimatePhysics
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 885eac34fd0d577439e6670a7ca3777e,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 666492324}
+  m_SourcePrefab: {fileID: 100100000, guid: 885eac34fd0d577439e6670a7ca3777e, type: 3}
 --- !u!1 &511888730
 GameObject:
   m_ObjectHideFlags: 0
@@ -432,6 +514,32 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8316983065420468219}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &666492323 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 885eac34fd0d577439e6670a7ca3777e,
+    type: 3}
+  m_PrefabInstance: {fileID: 488727552}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &666492324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 666492323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a2746401509722408daf2a3756b7be4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieMovement
+  target: {fileID: 3449437230710253715}
+  speed: 1.5
+--- !u!4 &666492326 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 885eac34fd0d577439e6670a7ca3777e,
+    type: 3}
+  m_PrefabInstance: {fileID: 488727552}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -550,6 +658,53 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 6912157078979191907}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1346326485
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1346326487}
+  - component: {fileID: 1346326488}
+  m_Layer: 0
+  m_Name: Enemy-Spawn
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1346326487
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1346326485}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 13.17156, y: -0, z: -1.68341}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 666492326}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1346326488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1346326485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f931887ba3836544a0d5d516f55d022, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  numberOfEnemy: 3
+  objectToSpawn: {fileID: 666492323}
 --- !u!1 &1537711652
 GameObject:
   m_ObjectHideFlags: 0
@@ -5069,7 +5224,7 @@ Transform:
   m_GameObject: {fileID: 5467685200689257835}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.28, z: -0.88}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -5328,3 +5483,4 @@ SceneRoots:
   - {fileID: 8316983065420468219}
   - {fileID: 1590953658}
   - {fileID: 1548687781}
+  - {fileID: 1346326487}
