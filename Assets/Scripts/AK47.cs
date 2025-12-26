@@ -3,6 +3,22 @@ using System.Collections;
 
 public class AK47 : MonoBehaviour
 {
+    public enum FireMode
+    {
+        Single,
+        Automatic
+    }
+
+    [Header("=== FIRE MODE ===")]
+    public FireMode fireMode = FireMode.Single;
+
+    [Header("=== KEY BINDINGS ===")]
+    public KeyCode fireKey = KeyCode.Mouse0;       // Left Mouse Button
+    public KeyCode aimKey = KeyCode.Mouse1;        // Right Mouse Button
+    public KeyCode reloadKey = KeyCode.R;
+    public KeyCode runKey = KeyCode.LeftShift;
+    public KeyCode switchFireModeKey = KeyCode.F;
+
     [Header("=== REFERENCES ===")]
     [SerializeField] private Camera playerCamera;
     [SerializeField] private Transform gunHolder;
@@ -21,7 +37,7 @@ public class AK47 : MonoBehaviour
     [Header("=== AUDIO ===")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip shootSound;
-    [SerializeField] private AudioClip reloadSound; // reload sound added
+    [SerializeField] private AudioClip reloadSound;
     [Range(0f, 1f)] [SerializeField] private float shootVolume = 0.8f;
     [Range(0f, 1f)] [SerializeField] private float reloadVolume = 0.8f;
 
@@ -37,10 +53,9 @@ public class AK47 : MonoBehaviour
     [SerializeField] private float range = 150f;
 
     [Header("=== RECOIL ===")]
-    [SerializeField] private float recoilVertical = 2.2f;
-    [SerializeField] private float recoilHorizontal = 1.2f;
-    [SerializeField] private float recoilReturnSpeed = 18f;
-    [SerializeField] private float recoilSnappiness = 25f;
+    [SerializeField] private float recoilKickBack = 0.1f;      // Gun moves back
+    [SerializeField] private float recoilRotation = 5f;        // Gun tilts
+    [SerializeField] private float recoilRecoverySpeed = 8f;   // Gun returns smoothly
 
     [Header("=== SWAY ===")]
     [SerializeField] private float swayAmount = 1.5f;
@@ -52,22 +67,22 @@ public class AK47 : MonoBehaviour
     private int currentAmmo;
     private bool isReloading;
     private float nextFireTime;
-    private bool canShoot = false;
+    private bool canShoot = true;
 
     private Quaternion initialWeaponRotation;
-    private Quaternion baseCameraRotation;
-
     private Vector3 slideStartLocalPos;
     private Vector3 slideEndLocalPos;
 
-    private Vector2 currentRecoil;
-    private Vector2 targetRecoil;
+    // Physical recoil
+    private Vector3 currentRecoilPosition;
+    private Vector3 targetRecoilPosition;
+    private Vector3 currentRecoilRotation;
+    private Vector3 targetRecoilRotation;
 
     void Start()
     {
         currentAmmo = magazineSize;
         initialWeaponRotation = transform.localRotation;
-        baseCameraRotation = playerCamera.transform.localRotation;
 
         if (slideTransform && slideEndTransform)
         {
@@ -75,30 +90,45 @@ public class AK47 : MonoBehaviour
             slideEndLocalPos = slideEndTransform.localPosition;
         }
 
-        nextFireTime = Time.time + 0.15f;
+        nextFireTime = Time.time;
     }
 
     void Update()
     {
+        // Switch fire mode
+        if (Input.GetKeyDown(switchFireModeKey))
+        {
+            fireMode = fireMode == FireMode.Single ? FireMode.Automatic : FireMode.Single;
+            Debug.Log("Fire Mode: " + fireMode);
+        }
+
         if (isReloading) return;
 
         HandleInput();
         HandleWeaponSway();
         HandleWeaponPosition();
-        HandleRecoil();
+        HandlePhysicalRecoil();
         ReturnSlideForward();
     }
 
     void HandleInput()
     {
-        if (!Input.GetButton("Fire1"))
+        if (!Input.GetKey(fireKey))
             canShoot = true;
 
-        if (Input.GetKeyDown(KeyCode.R))
+        if (Input.GetKeyDown(reloadKey))
             StartCoroutine(Reload());
 
-        if (canShoot && Input.GetButton("Fire1") && Time.time >= nextFireTime)
-            Shoot();
+        if (fireMode == FireMode.Single)
+        {
+            if (canShoot && Input.GetKey(fireKey) && Time.time >= nextFireTime)
+                Shoot();
+        }
+        else if (fireMode == FireMode.Automatic)
+        {
+            if (Input.GetKey(fireKey) && Time.time >= nextFireTime)
+                Shoot();
+        }
     }
 
     void Shoot()
@@ -109,11 +139,11 @@ public class AK47 : MonoBehaviour
         currentAmmo--;
         nextFireTime = Time.time + (60f / fireRateRPM);
 
-        // Recoil
-        targetRecoil.x += recoilVertical;
-        targetRecoil.y += Random.Range(-recoilHorizontal, recoilHorizontal);
+        // Physical recoil
+        targetRecoilPosition += Vector3.back * recoilKickBack;
+        targetRecoilRotation += new Vector3(-recoilRotation, Random.Range(-recoilRotation / 2f, recoilRotation / 2f), 0f);
 
-        // Slide
+        // Slide / Bolt
         if (slideTransform && slideEndTransform)
             slideTransform.localPosition = slideEndLocalPos;
 
@@ -121,22 +151,31 @@ public class AK47 : MonoBehaviour
         if (shellCasingPrefab && shellEjectPoint)
         {
             Quaternion shellRot = Quaternion.LookRotation(-playerCamera.transform.forward);
-
             GameObject shell = Instantiate(shellCasingPrefab, shellEjectPoint.position, shellRot);
+
             Rigidbody rb = shell.GetComponent<Rigidbody>();
             if (rb)
             {
-                Vector3 ejectDir = shellEjectPoint.right * Random.Range(1.8f, 2.6f) + shellEjectPoint.forward * 0.3f;
+                Vector3 ejectDir =
+                    shellEjectPoint.right * Random.Range(1.8f, 2.6f) +
+                    shellEjectPoint.forward * 0.3f;
+
                 rb.AddForce(ejectDir, ForceMode.Impulse);
                 rb.AddTorque(Random.insideUnitSphere * 2f, ForceMode.Impulse);
             }
+
             Destroy(shell, 5f);
         }
 
         // Muzzle flash
         if (muzzleFlashPrefab && muzzlePoint)
         {
-            GameObject flash = Instantiate(muzzleFlashPrefab, muzzlePoint.position, muzzlePoint.rotation, muzzlePoint);
+            GameObject flash = Instantiate(
+                muzzleFlashPrefab,
+                muzzlePoint.position,
+                muzzlePoint.rotation,
+                muzzlePoint
+            );
             Destroy(flash, 0.05f);
         }
 
@@ -145,19 +184,33 @@ public class AK47 : MonoBehaviour
             audioSource.PlayOneShot(shootSound, shootVolume);
     }
 
-    void HandleRecoil()
+    void HandlePhysicalRecoil()
     {
-        targetRecoil = Vector2.Lerp(targetRecoil, Vector2.zero, recoilReturnSpeed * Time.deltaTime);
-        currentRecoil = Vector2.Lerp(currentRecoil, targetRecoil, recoilSnappiness * Time.deltaTime);
+        // Smoothly move gun back to original position
+        currentRecoilPosition = Vector3.Lerp(currentRecoilPosition, Vector3.zero, recoilRecoverySpeed * Time.deltaTime);
+        currentRecoilRotation = Vector3.Lerp(currentRecoilRotation, Vector3.zero, recoilRecoverySpeed * Time.deltaTime);
 
-        playerCamera.transform.localRotation = baseCameraRotation * Quaternion.Euler(-currentRecoil.x, currentRecoil.y, 0f);
+        // Apply target recoil
+        currentRecoilPosition = Vector3.Lerp(currentRecoilPosition, targetRecoilPosition, recoilRecoverySpeed * Time.deltaTime);
+        currentRecoilRotation = Vector3.Lerp(currentRecoilRotation, targetRecoilRotation, recoilRecoverySpeed * Time.deltaTime);
+
+        gunHolder.localPosition += currentRecoilPosition;
+        gunHolder.localRotation *= Quaternion.Euler(currentRecoilRotation);
+
+        // Reset target recoil for next frame
+        targetRecoilPosition = Vector3.zero;
+        targetRecoilRotation = Vector3.zero;
     }
 
     void ReturnSlideForward()
     {
         if (!slideTransform) return;
 
-        slideTransform.localPosition = Vector3.Lerp(slideTransform.localPosition, slideStartLocalPos, Time.deltaTime * slideReturnSpeed);
+        slideTransform.localPosition = Vector3.Lerp(
+            slideTransform.localPosition,
+            slideStartLocalPos,
+            Time.deltaTime * slideReturnSpeed
+        );
     }
 
     IEnumerator Reload()
@@ -166,7 +219,6 @@ public class AK47 : MonoBehaviour
 
         isReloading = true;
 
-        // Play reload sound
         if (audioSource && reloadSound)
             audioSource.PlayOneShot(reloadSound, reloadVolume);
 
@@ -184,22 +236,35 @@ public class AK47 : MonoBehaviour
         Vector3 sway = new Vector3(mouseY, -mouseX, 0f) * swayAmount;
         Quaternion targetRot = Quaternion.Euler(sway);
 
-        transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRot * initialWeaponRotation, Time.deltaTime * swaySmooth);
+        transform.localRotation = Quaternion.Slerp(
+            transform.localRotation,
+            targetRot * initialWeaponRotation,
+            Time.deltaTime * swaySmooth
+        );
     }
 
     void HandleWeaponPosition()
     {
         Transform target = hipPosition;
 
-        bool aiming = Input.GetButton("Fire2");
-        bool running = Input.GetKey(KeyCode.LeftShift) && Input.GetAxis("Vertical") > 0;
+        bool aiming = Input.GetKey(aimKey);
+        bool running = Input.GetKey(runKey) && Input.GetAxis("Vertical") > 0;
 
         if (running)
             target = runPosition;
         else if (aiming)
             target = aimPosition;
 
-        gunHolder.localPosition = Vector3.Lerp(gunHolder.localPosition, target.localPosition, Time.deltaTime * positionLerpSpeed);
-        gunHolder.localRotation = Quaternion.Slerp(gunHolder.localRotation, target.localRotation, Time.deltaTime * positionLerpSpeed);
+        gunHolder.localPosition = Vector3.Lerp(
+            gunHolder.localPosition,
+            target.localPosition,
+            Time.deltaTime * positionLerpSpeed
+        );
+
+        gunHolder.localRotation = Quaternion.Slerp(
+            gunHolder.localRotation,
+            target.localRotation,
+            Time.deltaTime * positionLerpSpeed
+        );
     }
 }
