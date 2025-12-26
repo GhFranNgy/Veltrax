@@ -55,7 +55,14 @@ public class Spawn : MonoBehaviour
                 } 
             } 
             
-            // Apply movement 
+            // Apply yombie rotation pov
+            Vector3 lookDir = (player.position - obj.transform.position).normalized; Quaternion targetRot = Quaternion.LookRotation(lookDir); obj.transform.rotation = Quaternion.Slerp( obj.transform.rotation, targetRot, 5f * Time.deltaTime );
+
+            // Keep follower on ground 
+            float groundY = 0f; 
+            obj.transform.position = new Vector3( obj.transform.position.x, groundY, obj.transform.position.z );
+            
+            //Movement
             obj.transform.position += (move + separation) * Time.deltaTime; } 
             }
     }
