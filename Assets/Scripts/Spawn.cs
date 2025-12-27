@@ -2,79 +2,74 @@ using UnityEngine;
 
 public class Spawn : MonoBehaviour
 {
-    //Gameobject und Menge von Zombie
     public int numberOfEnemy;
     public GameObject objectToSpawn;
 
-    //Follow-Target, speed, Abstand
     public Transform player;
     public float speed;
-    public float separationDistance = 0.5f; 
+    public float separationDistance = 0.5f;
     public float separationForce = 1f;
 
-    private GameObject[] Enemies;
-    private Animator[] animators; // NEW
+    private GameObject[] enemies;
+    private Animator[] animators;
 
     void Start()
     {
-        Enemies = new GameObject[numberOfEnemy];
-        animators = new Animator[numberOfEnemy]; // NEW
+        enemies = new GameObject[numberOfEnemy];
+        animators = new Animator[numberOfEnemy];
 
         for (int i = 0; i < numberOfEnemy; i++)
         {
-            Vector3 randomPosition = new Vector3(Random.Range(-11, 11), 0f, Random.Range(-11, 10));
-            Enemies[i] = Instantiate(objectToSpawn, randomPosition, Quaternion.identity);
+            Vector3 pos = new Vector3(Random.Range(-11, 11), 0f, Random.Range(-11, 10));
+            GameObject enemy = Instantiate(objectToSpawn, pos, Quaternion.identity);
 
-            animators[i] = Enemies[i].GetComponent<Animator>(); // NEW
+            enemies[i] = enemy;
+            animators[i] = enemy.GetComponentInChildren<Animator>();
         }
     }
 
     void Update()
     {
-        if (player == null) return;
+        if (!player) return;
 
-        for (int i = 0; i < Enemies.Length; i++)
+        for (int i = 0; i < enemies.Length; i++)
         {
-            GameObject obj = Enemies[i];
-            if (obj == null) continue;
+            GameObject obj = enemies[i];
+            if (!obj) continue;
+
+            Vector3 pos = obj.transform.position;
 
             // Follow movement
-            Vector3 direction = (player.position - obj.transform.position).normalized;
+            Vector3 direction = (player.position - pos).normalized;
             Vector3 move = direction * speed;
 
             // Separation
             Vector3 separation = Vector3.zero;
-
-            for (int j = 0; j < Enemies.Length; j++)
+            for (int j = 0; j < enemies.Length; j++)
             {
                 if (i == j) continue;
-                GameObject other = Enemies[j];
-                if (other == null) continue;
+                GameObject other = enemies[j];
+                if (!other) continue;
 
-                float dist = Vector3.Distance(obj.transform.position, other.transform.position);
-
+                float dist = Vector3.Distance(pos, other.transform.position);
                 if (dist < separationDistance)
                 {
-                    Vector3 pushAway = (obj.transform.position - other.transform.position).normalized;
-                    separation += pushAway * (separationDistance - dist) * separationForce;
+                    separation += (pos - other.transform.position).normalized *
+                                  (separationDistance - dist) * separationForce;
                 }
             }
 
-            // NEW — Animation control
-            float currentSpeed = (move + separation).magnitude;
-            animators[i].SetFloat("Speed", currentSpeed);
+            // Animation
+            animators[i].SetFloat("Speed", (move + separation).magnitude);
 
             // Rotation
-            Vector3 lookDir = (player.position - obj.transform.position).normalized;
-            Quaternion targetRot = Quaternion.LookRotation(lookDir);
+            Quaternion targetRot = Quaternion.LookRotation(direction);
             obj.transform.rotation = Quaternion.Slerp(obj.transform.rotation, targetRot, 5f * Time.deltaTime);
 
-            // Keep follower on ground
-            float groundY = 0f;
-            obj.transform.position = new Vector3(obj.transform.position.x, groundY, obj.transform.position.z);
-
-            // Movement
-            obj.transform.position += (move + separation) * Time.deltaTime;
+            // Movement (keep y = 0)
+            pos += (move + separation) * Time.deltaTime;
+            pos.y = 0f;
+            obj.transform.position = pos;
         }
     }
 }
