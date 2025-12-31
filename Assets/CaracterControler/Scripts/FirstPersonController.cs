@@ -320,14 +320,10 @@ namespace EasyPeasyFirstPersonController
         public Transform groundCheck;
 
         [Header("Mouse & Look")]
-        [Range(0, 100)] public float mouseSensitivity = 50f;
-        [Range(0f, 200f)] public float snappiness = 100f;
+        public float mouseSensitivity = 50f;
+        public float snappiness = 100f;
 
         [Header("Movement")]
-        public float walkSpeed = 3f;
-        public float sprintSpeed = 5f;
-        public float crouchSpeed = 1.5f;
-        public float aimWalkSpeed = 1.5f;
         public float jumpSpeed = 3f;
         public float gravity = 9.81f;
 
@@ -336,12 +332,11 @@ namespace EasyPeasyFirstPersonController
         public float crouchCameraHeight = 1f;
         public float slideSpeed = 8f;
         public float slideDuration = 0.7f;
-        public float slideFovBoost = 5f;
         public float slideTiltAngle = 5f;
 
         [Header("Coyote Time")]
         public bool coyoteTimeEnabled = true;
-        [Range(0.01f, 0.3f)] public float coyoteTimeDuration = 0.2f;
+        public float coyoteTimeDuration = 0.2f;
 
         [Header("FOV")]
         public float normalFov = 60f;
@@ -358,7 +353,6 @@ namespace EasyPeasyFirstPersonController
         [Header("Ground Check")]
         public float groundDistance = 0.2f;
         public LayerMask groundMask;
-        public QueryTriggerInteraction groundCheckQuery = QueryTriggerInteraction.Ignore;
 
         [Header("Features")]
         public bool canSprint = true;
@@ -376,8 +370,8 @@ namespace EasyPeasyFirstPersonController
         private Camera cam;
         private Animator animator;
 
-        private Vector3 moveDirection;
-        private Vector3 slideDirection;
+        private Vector3 verticalVelocity;
+        private Vector3 rootMotionDelta;
 
         private float rotX, rotY;
         private float xVelocity, yVelocity;
@@ -410,17 +404,26 @@ namespace EasyPeasyFirstPersonController
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+
+            animator.applyRootMotion = true;
         }
 
         private void Update()
         {
             HandleGroundCheck();
             HandleLook();
-            HandleMovement();
+            HandleInputStates();
+            HandleVerticalMovement();
             HandleCrouchAndSlide();
             HandleHeadBob();
             HandleFov();
             UpdateAnimator();
+        }
+
+        private void OnAnimatorMove()
+        {
+            // Horizontal movement comes from root motion
+            rootMotionDelta = animator.deltaPosition;
         }
 
         private void HandleGroundCheck()
@@ -428,14 +431,13 @@ namespace EasyPeasyFirstPersonController
             isGrounded = Physics.CheckSphere(
                 groundCheck.position,
                 groundDistance,
-                groundMask,
-                groundCheckQuery
+                groundMask
             );
 
             if (isGrounded)
             {
-                if (moveDirection.y < 0)
-                    moveDirection.y = -2f;
+                if (verticalVelocity.y < 0)
+                    verticalVelocity.y = -2f;
 
                 coyoteTimer = coyoteTimeEnabled ? coyoteTimeDuration : 0f;
             }
@@ -468,7 +470,7 @@ namespace EasyPeasyFirstPersonController
             transform.rotation = Quaternion.Euler(0f, xVelocity, 0f);
         }
 
-        private void HandleMovement()
+        private void HandleInputStates()
         {
             Vector2 input = Vector2.zero;
 
@@ -486,38 +488,35 @@ namespace EasyPeasyFirstPersonController
                 !isSliding &&
                 !Input.GetKey(userSettings.aimKey);
 
-            float speed =
-                isSprinting ? sprintSpeed :
-                Input.GetKey(userSettings.aimKey) ? aimWalkSpeed :
-                isCrouching ? crouchSpeed :
-                walkSpeed;
+            isCrouching =
+                canCrouch &&
+                Input.GetKey(userSettings.crouchKey) &&
+                !isSliding;
+        }
 
-            Vector3 move = transform.TransformDirection(new Vector3(input.x, 0f, input.y)) * speed;
-
+        private void HandleVerticalMovement()
+        {
             if ((isGrounded || coyoteTimer > 0f) &&
                 canJump &&
                 Input.GetKeyDown(userSettings.jumpKey) &&
                 !isSliding)
             {
-                moveDirection.y = jumpSpeed;
+                verticalVelocity.y = jumpSpeed;
             }
             else
             {
-                moveDirection.y -= gravity * Time.deltaTime;
+                verticalVelocity.y -= gravity * Time.deltaTime;
             }
 
-            if (!isSliding)
-            {
-                moveDirection.x = move.x;
-                moveDirection.z = move.z;
-                controller.Move(moveDirection * Time.deltaTime);
-            }
+            // Apply root motion (horizontal) + vertical motion
+            Vector3 finalMove = rootMotionDelta;
+            finalMove.y = verticalVelocity.y * Time.deltaTime;
+
+            controller.Move(finalMove);
         }
 
         private void HandleCrouchAndSlide()
         {
-            bool wantsCrouch = canCrouch && Input.GetKey(userSettings.crouchKey) && !isSliding;
-
             if (canSlide &&
                 isSprinting &&
                 Input.GetKeyDown(userSettings.slideKey) &&
@@ -525,22 +524,16 @@ namespace EasyPeasyFirstPersonController
             {
                 isSliding = true;
                 slideTimer = slideDuration;
-                slideDirection = transform.forward;
             }
 
             if (isSliding)
             {
                 slideTimer -= Time.deltaTime;
-
-                if (slideTimer <= 0f || !isGrounded)
+                if (slideTimer <= 0f)
                     isSliding = false;
-
-                controller.Move(slideDirection * slideSpeed * Time.deltaTime);
             }
 
-            isCrouching = wantsCrouch || isSliding;
-
-            float targetHeight = isCrouching ? crouchHeight : originalHeight;
+            float targetHeight = isCrouching || isSliding ? crouchHeight : originalHeight;
             controller.height = Mathf.Lerp(controller.height, targetHeight, Time.deltaTime * 10f);
             controller.center = new Vector3(0f, controller.height * 0.5f, 0f);
 
@@ -589,7 +582,7 @@ namespace EasyPeasyFirstPersonController
             float targetFov = normalFov;
 
             if (isSliding)
-                targetFov = sprintFov + slideFovBoost;
+                targetFov = sprintFov;
             else if (Input.GetKey(userSettings.aimKey))
                 targetFov = adsFov;
             else if (isSprinting)
@@ -609,19 +602,12 @@ namespace EasyPeasyFirstPersonController
             if (Input.GetKey(userSettings.moveRight)) input.x += 1f;
             if (Input.GetKey(userSettings.moveLeft)) input.x -= 1f;
 
-            float speed =
-                isSprinting ? sprintSpeed :
-                Input.GetKey(userSettings.aimKey) ? aimWalkSpeed :
-                isCrouching ? crouchSpeed :
-                walkSpeed;
-
-            animator.SetFloat("Speed", input.magnitude * speed);
             animator.SetFloat("InputX", input.x);
             animator.SetFloat("InputY", input.y);
             animator.SetBool("isSprinting", isSprinting);
             animator.SetBool("isCrouching", isCrouching);
             animator.SetBool("isGrounded", isGrounded);
-            animator.SetBool("isJumping", moveDirection.y > 0.1f);
+            animator.SetBool("isJumping", verticalVelocity.y > 0.1f);
             animator.SetBool("isAiming", Input.GetKey(userSettings.aimKey));
         }
     }
