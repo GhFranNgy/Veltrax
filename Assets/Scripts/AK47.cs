@@ -16,7 +16,7 @@ public class AK47 : MonoBehaviour
     [SerializeField] private Transform gunHolder;
     [SerializeField] private Transform muzzlePoint;
     [SerializeField] private Transform shellEjectPoint;
-    [SerializeField] private EasyPeasyFirstPersonController.FirstPersonController playerController; // Reference to FPS controller
+    [SerializeField] private EasyPeasyFirstPersonController.FirstPersonController playerController;
 
     [Header("=== SLIDE / BOLT ===")]
     [SerializeField] private Transform slideTransform;
@@ -31,31 +31,13 @@ public class AK47 : MonoBehaviour
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip shootSound;
     [SerializeField] private AudioClip reloadSound;
-    [Range(0f, 1f)]
-    [SerializeField] private float shootVolume = 0.8f;
-    [Range(0f, 1f)]
-    [SerializeField] private float reloadVolume = 0.8f;
-
-    [Header("=== WEAPON POSITIONS ===")]
-    [SerializeField] private Transform hipPosition;
-    [SerializeField] private Transform aimPosition;
-    [SerializeField] private Transform runPosition;
-    [SerializeField] private Transform reloadPosition;
+    [Range(0f, 1f)] [SerializeField] private float shootVolume = 0.8f;
+    [Range(0f, 1f)] [SerializeField] private float reloadVolume = 0.8f;
 
     [Header("=== AK-47 STATS ===")]
     [SerializeField] private int magazineSize = 30;
     [SerializeField] private float reloadTime = 2.45f;
     [SerializeField] private float fireRateRPM = 600f;
-    [SerializeField] private float range = 150f;
-
-    [Header("=== RECOIL ===")]
-    [SerializeField] private float recoilKickBack = 0.1f;
-    [SerializeField] private float recoilRotation = 5f;
-    [SerializeField] private float recoilRecoverySpeed = 8f;
-
-    [Header("=== AIMING SETTINGS ===")]
-    [Range(0f,1f)] public float aimingRecoilMultiplier = 0.5f; // Reduce recoil when aiming
-    [Range(0f,1f)] public float aimingBobMultiplier = 0.3f; // Reduce bobbing when aiming
 
     [Header("=== SWAY ===")]
     [SerializeField] private float swayAmount = 1.5f;
@@ -64,7 +46,6 @@ public class AK47 : MonoBehaviour
     [Header("=== VIEW BOBBING ===")]
     [SerializeField] private float walkBobAmount = 0.05f;
     [SerializeField] private float runBobAmount = 0.1f;
-    [SerializeField] private float aimBobAmount = 0.02f;
     [SerializeField] private float bobSpeed = 8f;
 
     [Header("=== MOVEMENT ===")]
@@ -79,12 +60,7 @@ public class AK47 : MonoBehaviour
     private Vector3 slideStartLocalPos;
     private Vector3 slideEndLocalPos;
 
-    private Vector3 currentRecoilPosition;
-    private Vector3 targetRecoilPosition;
-    private Vector3 currentRecoilRotation;
-    private Vector3 targetRecoilRotation;
-
-    private KeyCode fireKey, aimKey, reloadKey, runKey, switchFireModeKey;
+    private KeyCode fireKey, reloadKey, runKey, switchFireModeKey;
     private float bobTimer;
     private Vector3 initialGunLocalPos;
 
@@ -93,7 +69,6 @@ public class AK47 : MonoBehaviour
         if (userSettings != null)
         {
             fireKey = userSettings.fireKey;
-            aimKey = userSettings.aimKey;
             reloadKey = userSettings.reloadKey;
             runKey = userSettings.runKey;
             switchFireModeKey = userSettings.switchFireModeKey;
@@ -110,7 +85,8 @@ public class AK47 : MonoBehaviour
 
         nextFireTime = Time.time;
 
-        if (gunHolder != null) initialGunLocalPos = gunHolder.localPosition;
+        if (gunHolder != null)
+            initialGunLocalPos = gunHolder.localPosition;
     }
 
     void Update()
@@ -123,13 +99,14 @@ public class AK47 : MonoBehaviour
 
         HandleInput();
         HandleWeaponSway();
-        HandleRecoilAndPosition();
+        HandleBobbing();
         ReturnSlideForward();
     }
 
     void HandleInput()
     {
-        if (!Input.GetKey(fireKey)) canShoot = true;
+        if (!Input.GetKey(fireKey))
+            canShoot = true;
 
         if (Input.GetKeyDown(reloadKey))
             StartCoroutine(Reload());
@@ -154,38 +131,40 @@ public class AK47 : MonoBehaviour
         currentAmmo--;
         nextFireTime = Time.time + (60f / fireRateRPM);
 
-        float multiplier = Input.GetKey(aimKey) ? aimingRecoilMultiplier : 1f;
-
-        targetRecoilPosition += Vector3.back * recoilKickBack * multiplier;
-        targetRecoilRotation += new Vector3(
-            -recoilRotation * multiplier,
-            Random.Range(-recoilRotation / 2f, recoilRotation / 2f) * multiplier,
-            0f
-        );
-
+        // Slide movement
         if (slideTransform && slideEndTransform)
             slideTransform.localPosition = slideEndLocalPos;
 
+        // Shell ejection (ROTATED 180°)
         if (shellCasingPrefab && shellEjectPoint)
         {
-            Quaternion shellRot = Quaternion.LookRotation(-playerCamera.transform.forward);
+            // Rotate shell 180 degrees so it faces away from you
+            Quaternion shellRot = Quaternion.LookRotation(transform.forward * -1f, transform.up);
+
             GameObject shell = Instantiate(shellCasingPrefab, shellEjectPoint.position, shellRot);
             Rigidbody rb = shell.GetComponent<Rigidbody>();
+
             if (rb)
             {
-                Vector3 ejectDir = shellEjectPoint.right * Random.Range(1.8f, 2.6f) + shellEjectPoint.forward * 0.3f;
+                Vector3 ejectDir =
+                    shellEjectPoint.right * Random.Range(1.8f, 2.6f) +
+                    shellEjectPoint.up * 0.2f;
+
                 rb.AddForce(ejectDir, ForceMode.Impulse);
                 rb.AddTorque(Random.insideUnitSphere * 2f, ForceMode.Impulse);
             }
+
             Destroy(shell, 5f);
         }
 
+        // Muzzle flash
         if (muzzleFlashPrefab && muzzlePoint)
         {
             GameObject flash = Instantiate(muzzleFlashPrefab, muzzlePoint.position, muzzlePoint.rotation, muzzlePoint);
             Destroy(flash, 0.05f);
         }
 
+        // Sound
         if (audioSource && shootSound)
             audioSource.PlayOneShot(shootSound, shootVolume);
     }
@@ -214,37 +193,18 @@ public class AK47 : MonoBehaviour
         transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRot * initialWeaponRotation, Time.deltaTime * swaySmooth);
     }
 
-    void HandleRecoilAndPosition()
+    void HandleBobbing()
     {
-        currentRecoilPosition = Vector3.Lerp(currentRecoilPosition, targetRecoilPosition, recoilRecoverySpeed * Time.deltaTime);
-        currentRecoilRotation = Vector3.Lerp(currentRecoilRotation, targetRecoilRotation, recoilRecoverySpeed * Time.deltaTime);
+        Vector3 targetPos = initialGunLocalPos;
 
-        Transform target;
-        bool aiming = Input.GetKey(aimKey);
-        bool running = Input.GetKey(runKey) && Input.GetAxis("Vertical") > 0;
-
-        if (isReloading && reloadPosition != null) target = reloadPosition;
-        else if (running) target = runPosition;
-        else if (aiming) target = aimPosition;
-        else target = hipPosition;
-
-        Vector3 targetPos = target.localPosition + currentRecoilPosition;
-        Quaternion targetRot = target.localRotation * Quaternion.Euler(currentRecoilRotation);
-
-        // Handle bobbing only when moving AND grounded
         if (playerController != null && playerController.isGrounded)
         {
             float moveInput = Mathf.Abs(Input.GetAxis("Vertical")) + Mathf.Abs(Input.GetAxis("Horizontal"));
             if (moveInput > 0.01f)
             {
-                float speed = running ? 1.5f : 1f;
-                if (aiming) speed *= 0.5f;
+                float bobAmount = Input.GetKey(runKey) ? runBobAmount : walkBobAmount;
 
-                float bobAmount = walkBobAmount;
-                if (running) bobAmount = runBobAmount;
-                if (aiming) bobAmount = aimBobAmount * aimingBobMultiplier;
-
-                bobTimer += Time.deltaTime * bobSpeed * speed;
+                bobTimer += Time.deltaTime * bobSpeed;
                 Vector3 bobOffset = new Vector3(
                     Mathf.Sin(bobTimer) * bobAmount,
                     Mathf.Cos(bobTimer * 2) * bobAmount,
@@ -255,10 +215,6 @@ public class AK47 : MonoBehaviour
         }
 
         gunHolder.localPosition = Vector3.Lerp(gunHolder.localPosition, targetPos, Time.deltaTime * positionLerpSpeed);
-        gunHolder.localRotation = Quaternion.Slerp(gunHolder.localRotation, targetRot, Time.deltaTime * positionLerpSpeed);
-
-        targetRecoilPosition = Vector3.zero;
-        targetRecoilRotation = Vector3.zero;
     }
 
     void ReturnSlideForward()
