@@ -16,7 +16,12 @@ public class AK47 : MonoBehaviour
     [SerializeField] private Transform gunHolder;
     [SerializeField] private Transform muzzlePoint;
     [SerializeField] private Transform shellEjectPoint;
-    [SerializeField] private EasyPeasyFirstPersonController.FirstPersonController playerController; // Reference to FPS controller
+    [SerializeField] private EasyPeasyFirstPersonController.FirstPersonController playerController;
+
+    [Header("=== ROTATION ===")]
+    [SerializeField] private Transform verticalPivot;   // NEW
+    [SerializeField] private float verticalRotationLimit = 80f; // NEW
+    private float verticalRotation; // NEW
 
     [Header("=== SLIDE / BOLT ===")]
     [SerializeField] private Transform slideTransform;
@@ -54,8 +59,8 @@ public class AK47 : MonoBehaviour
     [SerializeField] private float recoilRecoverySpeed = 8f;
 
     [Header("=== AIMING SETTINGS ===")]
-    [Range(0f,1f)] public float aimingRecoilMultiplier = 0.5f; // Reduce recoil when aiming
-    [Range(0f,1f)] public float aimingBobMultiplier = 0.3f; // Reduce bobbing when aiming
+    [Range(0f,1f)] public float aimingRecoilMultiplier = 0.5f;
+    [Range(0f,1f)] public float aimingBobMultiplier = 0.3f;
 
     [Header("=== SWAY ===")]
     [SerializeField] private float swayAmount = 1.5f;
@@ -122,9 +127,25 @@ public class AK47 : MonoBehaviour
         }
 
         HandleInput();
+        HandleVerticalRotation();   // NEW
         HandleWeaponSway();
         HandleRecoilAndPosition();
         ReturnSlideForward();
+    }
+
+    // -----------------------------
+    // NEW VERTICAL ROTATION METHOD
+    // -----------------------------
+    void HandleVerticalRotation()
+    {
+        if (verticalPivot == null) return;
+
+        float mouseY = Input.GetAxis("Mouse Y");
+
+        verticalRotation -= mouseY;
+        verticalRotation = Mathf.Clamp(verticalRotation, -verticalRotationLimit, verticalRotationLimit);
+
+        verticalPivot.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
     }
 
     void HandleInput()
@@ -231,7 +252,6 @@ public class AK47 : MonoBehaviour
         Vector3 targetPos = target.localPosition + currentRecoilPosition;
         Quaternion targetRot = target.localRotation * Quaternion.Euler(currentRecoilRotation);
 
-        // Handle bobbing only when moving AND grounded
         if (playerController != null && playerController.isGrounded)
         {
             float moveInput = Mathf.Abs(Input.GetAxis("Vertical")) + Mathf.Abs(Input.GetAxis("Horizontal"));

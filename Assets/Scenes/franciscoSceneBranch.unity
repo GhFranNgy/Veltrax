@@ -260,8 +260,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 51029669}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: 7.5807236e-16, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0.15}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -386,6 +386,8 @@ MonoBehaviour:
   muzzlePoint: {fileID: 1097728260}
   shellEjectPoint: {fileID: 1281502291}
   playerController: {fileID: 2059285761}
+  verticalPivot: {fileID: 1868192657}
+  verticalRotationLimit: 80
   slideTransform: {fileID: 27009383}
   slideEndTransform: {fileID: 1764572564}
   slideReturnSpeed: 18
@@ -414,8 +416,8 @@ MonoBehaviour:
   swayAmount: 0.1
   swaySmooth: 6
   walkBobAmount: 0.05
-  runBobAmount: 0.15
-  aimBobAmount: 0.02
+  runBobAmount: 0.1
+  aimBobAmount: 0.025
   bobSpeed: 8
   positionLerpSpeed: 8
 --- !u!1 &57992484
@@ -505,13 +507,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 83894443}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.5673006, y: 0.82345456, z: -0.0064149383, w: 0.0071739308}
-  m_LocalPosition: {x: -0.00231, y: 0.00455, z: 0.00091}
+  m_LocalRotation: {x: 0.51354295, y: 0.840419, z: 0.0107416995, w: -0.17278366}
+  m_LocalPosition: {x: -0.001779959, y: 0.0041490397, z: 0.0015098273}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1102019865}
-  m_LocalEulerAnglesHint: {x: 1.072, y: 179.74, z: 69.126}
+  m_LocalEulerAnglesHint: {x: -11.275, y: 196.552, z: 61.209}
 --- !u!1 &94969086
 GameObject:
   m_ObjectHideFlags: 0
@@ -922,7 +924,7 @@ Transform:
   m_GameObject: {fileID: 345480210}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 7.5807236e-16, w: 1}
-  m_LocalPosition: {x: -0.01, y: -0.19999997, z: -0.1}
+  m_LocalPosition: {x: -0.05, y: -0.3, z: -0.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2062,7 +2064,7 @@ Transform:
   m_GameObject: {fileID: 874903640}
   serializedVersion: 2
   m_LocalRotation: {x: -0.1516664, y: -0.06466184, z: -0.3942555, w: 0.90409005}
-  m_LocalPosition: {x: 0.052, y: -0.32500005, z: -0.121}
+  m_LocalPosition: {x: 0.052, y: -0.32500005, z: -0.1622}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3105,8 +3107,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1647700331}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.126405, y: -0.68267846, z: 0.23003703, w: 0.6819493}
-  m_LocalPosition: {x: 0.374, y: -0.372, z: 0.085}
+  m_LocalRotation: {x: 0.12640485, y: -0.6826792, z: 0.23003674, w: 0.68194884}
+  m_LocalPosition: {x: 0.374, y: -0.372, z: 0.043799996}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3496,7 +3498,7 @@ Transform:
   m_GameObject: {fileID: 1805085376}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 7.5807236e-16, w: 1}
-  m_LocalPosition: {x: 0, y: -0.5, z: -0.1}
+  m_LocalPosition: {x: 0, y: -0.375, z: -0.15}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3670,7 +3672,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1868192657}
   m_Layer: 2
-  m_Name: AK47
+  m_Name: AK47(Vertical Rotation)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3685,7 +3687,7 @@ Transform:
   m_GameObject: {fileID: 1868192656}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0.15}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -4009,6 +4011,10 @@ MonoBehaviour:
   cameraParent: {fileID: 926818753}
   groundCheck: {fileID: 1549103166}
   animator: {fileID: 6125814844727020964}
+  neckBone: {fileID: 6165421321350808925}
+  minPitch: -90
+  maxPitch: 90
+  neckRotationLimit: 70
   mouseSensitivity: 5
   snappiness: 100
   walkSpeed: 4.5
