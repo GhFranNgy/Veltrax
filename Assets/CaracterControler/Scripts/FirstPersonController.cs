@@ -5,7 +5,7 @@ namespace EasyPeasyFirstPersonController
     [RequireComponent(typeof(CharacterController))]
     public class FirstPersonController : MonoBehaviour
     {
-        // ================= SETTINGS =================
+        // ================= REFERENCES =================
 
         [Header("References")]
         public UserSettings userSettings;
@@ -17,6 +17,8 @@ namespace EasyPeasyFirstPersonController
         [Header("Body Parts")]
         public Transform neckBone;
 
+        // ================= LOOK =================
+
         [Header("Vertical Rotation Limit")]
         public float minPitch = -70f;
         public float maxPitch = 70f;
@@ -24,9 +26,10 @@ namespace EasyPeasyFirstPersonController
         [Header("Neck Rotation")]
         public float neckRotationLimit = 40f;
 
-        [Header("Mouse & Look")]
-        [Range(0, 100)] public float mouseSensitivity = 50f;
+        [Header("Look Smoothing")]
         [Range(0f, 200f)] public float snappiness = 100f;
+
+        // ================= MOVEMENT =================
 
         [Header("Movement")]
         public float walkSpeed = 3f;
@@ -36,6 +39,8 @@ namespace EasyPeasyFirstPersonController
         public float jumpSpeed = 3f;
         public float gravity = 9.81f;
 
+        // ================= CROUCH & SLIDE =================
+
         [Header("Crouch & Slide")]
         public float crouchHeight = 1f;
         public float crouchCameraHeight = 1f;
@@ -44,9 +49,13 @@ namespace EasyPeasyFirstPersonController
         public float slideFovBoost = 5f;
         public float slideTiltAngle = 5f;
 
+        // ================= COYOTE TIME =================
+
         [Header("Coyote Time")]
         public bool coyoteTimeEnabled = true;
         [Range(0.01f, 0.3f)] public float coyoteTimeDuration = 0.2f;
+
+        // ================= FOV =================
 
         [Header("FOV")]
         public float normalFov = 60f;
@@ -55,15 +64,21 @@ namespace EasyPeasyFirstPersonController
         public float fovChangeSpeed = 5f;
         public float adsFovSpeed = 10f;
 
+        // ================= HEAD BOB =================
+
         [Header("Head Bobbing")]
         public float walkingBobbingSpeed = 10f;
         public float bobbingAmount = 0.05f;
         public float sprintBobMultiplier = 1.5f;
 
+        // ================= GROUND CHECK =================
+
         [Header("Ground Check")]
         public float groundDistance = 0.2f;
         public LayerMask groundMask;
         public QueryTriggerInteraction groundCheckQuery = QueryTriggerInteraction.Ignore;
+
+        // ================= FEATURES =================
 
         [Header("Features")]
         public bool canSprint = true;
@@ -71,12 +86,14 @@ namespace EasyPeasyFirstPersonController
         public bool canCrouch = true;
         public bool canSlide = true;
 
-        // ================= INTERNAL =================
+        // ================= STATE =================
 
         public bool isGrounded { get; private set; }
         public bool isSprinting { get; private set; }
         public bool isCrouching { get; private set; }
         public bool isSliding { get; private set; }
+
+        // ================= INTERNAL =================
 
         private CharacterController controller;
         private Camera cam;
@@ -86,8 +103,6 @@ namespace EasyPeasyFirstPersonController
 
         private float rotX, rotY;
         private float xVelocity, yVelocity;
-
-        // ⭐ From your snippet
         private float neckVerticalRotation;
 
         private float coyoteTimer;
@@ -139,23 +154,26 @@ namespace EasyPeasyFirstPersonController
 
         private void LateUpdate()
         {
-            HandleNeckRotation(); // ⭐ uses your snippet logic
+            HandleNeckRotation();
         }
 
         // ================= LOOK =================
 
         private void HandleLook()
         {
-            float sensitivity = mouseSensitivity;
-            if (Input.GetKey(userSettings.aimKey))
-                sensitivity *= 0.6f;
+            float sensitivity = userSettings.mouseSensitivity;
 
-            float mouseX = Input.GetAxis("Mouse X") * sensitivity * Time.deltaTime * 10f;
-            float mouseY = Input.GetAxis("Mouse Y") * sensitivity * Time.deltaTime * 10f;
+            if (Input.GetKey(userSettings.aimKey) && !isSprinting)
+                sensitivity *= userSettings.adsSensitivityMultiplier;
 
-            rotX += mouseX;
+            float mouseX = Input.GetAxis(userSettings.mouseXAxis);
+            float mouseY = Input.GetAxis(userSettings.mouseYAxis);
 
-            rotY -= mouseY;
+            if (userSettings.invertMouseY)
+                mouseY *= -1f;
+
+            rotX += mouseX * sensitivity * Time.deltaTime * 10f;
+            rotY -= mouseY * sensitivity * Time.deltaTime * 10f;
             rotY = Mathf.Clamp(rotY, minPitch, maxPitch);
 
             xVelocity = Mathf.Lerp(xVelocity, rotX, snappiness * Time.deltaTime);
@@ -168,25 +186,22 @@ namespace EasyPeasyFirstPersonController
             transform.rotation = Quaternion.Euler(0f, xVelocity, 0f);
         }
 
-        // ================= NECK ROTATION =================
+        // ================= NECK =================
 
         private void HandleNeckRotation()
         {
             if (neckBone == null) return;
 
-            float mouseY = Input.GetAxis("Mouse Y");
+            float mouseY = Input.GetAxis(userSettings.mouseYAxis);
+            if (userSettings.invertMouseY)
+                mouseY *= -1f;
 
             neckVerticalRotation -= mouseY;
-            neckVerticalRotation = Mathf.Clamp(
-                neckVerticalRotation,
-                -neckRotationLimit,
-                neckRotationLimit
-            );
-
+            neckVerticalRotation = Mathf.Clamp(neckVerticalRotation, -neckRotationLimit, neckRotationLimit);
             neckBone.localRotation = Quaternion.Euler(neckVerticalRotation, 0f, 0f);
         }
 
-        // ================= MOVEMENT =================
+        // ================= GROUND CHECK =================
 
         private void HandleGroundCheck()
         {
@@ -199,7 +214,7 @@ namespace EasyPeasyFirstPersonController
 
             if (isGrounded)
             {
-                if (moveDirection.y < 0)
+                if (moveDirection.y < 0f)
                     moveDirection.y = -2f;
 
                 coyoteTimer = coyoteTimeEnabled ? coyoteTimeDuration : 0f;
@@ -209,6 +224,8 @@ namespace EasyPeasyFirstPersonController
                 coyoteTimer -= Time.deltaTime;
             }
         }
+
+        // ================= MOVEMENT =================
 
         private void HandleMovement()
         {
@@ -225,14 +242,12 @@ namespace EasyPeasyFirstPersonController
                 input.y > 0.1f &&
                 isGrounded &&
                 !isCrouching &&
-                !isSliding &&
-                !Input.GetKey(userSettings.aimKey);
+                !isSliding;
 
             float speed =
                 isSprinting ? sprintSpeed :
-                Input.GetKey(userSettings.aimKey) ? aimWalkSpeed :
                 isCrouching ? crouchSpeed :
-                walkSpeed;
+                (Input.GetKey(userSettings.aimKey) ? aimWalkSpeed : walkSpeed);
 
             Vector3 move = transform.TransformDirection(new Vector3(input.x, 0f, input.y)) * speed;
 
@@ -255,6 +270,8 @@ namespace EasyPeasyFirstPersonController
                 controller.Move(moveDirection * Time.deltaTime);
             }
         }
+
+        // ================= CROUCH & SLIDE =================
 
         private void HandleCrouchAndSlide()
         {
@@ -302,6 +319,8 @@ namespace EasyPeasyFirstPersonController
             );
         }
 
+        // ================= HEAD BOB =================
+
         private void HandleHeadBob()
         {
             if (!isGrounded || isSliding || isCrouching || Input.GetKey(userSettings.aimKey))
@@ -326,22 +345,28 @@ namespace EasyPeasyFirstPersonController
             );
         }
 
+        // ================= FOV =================
+
         private void HandleFov()
         {
             float targetFov = normalFov;
 
             if (isSliding)
                 targetFov = sprintFov + slideFovBoost;
-            else if (Input.GetKey(userSettings.aimKey))
-                targetFov = adsFov;
             else if (isSprinting)
                 targetFov = sprintFov;
+            else if (Input.GetKey(userSettings.aimKey))
+                targetFov = adsFov;
 
-            float speed = Input.GetKey(userSettings.aimKey) ? adsFovSpeed : fovChangeSpeed;
+            float speed = (!isSprinting && Input.GetKey(userSettings.aimKey))
+                ? adsFovSpeed
+                : fovChangeSpeed;
 
             currentFov = Mathf.SmoothDamp(currentFov, targetFov, ref fovVelocity, 1f / speed);
             cam.fieldOfView = currentFov;
         }
+
+        // ================= ANIMATOR =================
 
         private void UpdateAnimator()
         {
@@ -361,7 +386,7 @@ namespace EasyPeasyFirstPersonController
             animator.SetBool("isSliding", isSliding);
             animator.SetBool("isGrounded", isGrounded);
             animator.SetBool("isJumping", moveDirection.y > 0.1f);
-            animator.SetBool("isAiming", Input.GetKey(userSettings.aimKey));
+            animator.SetBool("isAiming", Input.GetKey(userSettings.aimKey) && !isSprinting);
         }
     }
 }
