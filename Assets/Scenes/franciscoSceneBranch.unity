@@ -386,7 +386,7 @@ MonoBehaviour:
   verticalPivot: {fileID: 1868192657}
   muzzlePoint: {fileID: 1097728260}
   shellEjectPoint: {fileID: 1281502291}
-  playerController: {fileID: 2059285761}
+  playerController: {fileID: 0}
   slideTransform: {fileID: 27009383}
   slideEndTransform: {fileID: 1764572564}
   slideReturnSpeed: 18
@@ -402,22 +402,27 @@ MonoBehaviour:
   aimPosition: {fileID: 345480211}
   crouchHipPosition: {fileID: 2079676269}
   crouchAimPosition: {fileID: 1851449745}
+  crouchWalkAimPosition: {fileID: 2041574979}
   reloadPosition: {fileID: 874903641}
   crouchReloadPosition: {fileID: 213064542}
   runPosition: {fileID: 1803414733}
   magazineSize: 30
   reloadTime: 2.45
   fireRateRPM: 600
-  recoilKickBack: 0.75
-  recoilRotation: 25
+  recoilKickBack: 0.01
+  recoilRotation: 10
   recoilRecoverySpeed: 10
   swayAmount: 0.1
   swaySmooth: 6
   walkBob: 0.05
   runBob: 0.1
   bobSpeed: 8
+  aimBobMultiplier: 0.3
+  walkBobMultiplier: 1
+  aimRecoilMultiplier: 0.5
   verticalRotationLimit: 80
   positionLerpSpeed: 8
+  recoilTarget: {fileID: 129433470}
 --- !u!1 &57992484
 GameObject:
   m_ObjectHideFlags: 0
@@ -607,6 +612,37 @@ Transform:
   m_Children:
   - {fileID: 2100613624}
   m_Father: {fileID: 1619508690}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &129433469
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 129433470}
+  m_Layer: 6
+  m_Name: AK47_recoil_Target
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &129433470
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 129433469}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.708616, y: 0.005374614, z: 0.005351387, w: 0.70555353}
+  m_LocalPosition: {x: 0.17727521, y: 0.10032718, z: -0.10447644}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1868192657}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &130389601
 GameObject:
@@ -1177,6 +1213,8 @@ MonoBehaviour:
   slideKey: 306
   mouseXAxis: Mouse X
   mouseYAxis: Mouse Y
+  horizontalAxis: Horizontal
+  verticalAxis: Vertical
   mouseSensitivity: 5
   adsSensitivityMultiplier: 0.6
   invertMouseY: 0
@@ -3767,9 +3805,11 @@ Transform:
   - {fileID: 874903641}
   - {fileID: 2079676269}
   - {fileID: 1851449745}
+  - {fileID: 2041574979}
   - {fileID: 213064542}
   - {fileID: 1803414733}
   - {fileID: 51029670}
+  - {fileID: 129433470}
   m_Father: {fileID: 1885107423}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1885107422
@@ -4049,6 +4089,37 @@ MonoBehaviour:
     m_HintWeight: 1
     m_MaintainTargetPositionOffset: 0
     m_MaintainTargetRotationOffset: 0
+--- !u!1 &2041574978
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2041574979}
+  m_Layer: 2
+  m_Name: AK47_C_W_Aim_Pos
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2041574979
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2041574978}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: 7.5807236e-16, w: 1}
+  m_LocalPosition: {x: 0.05, y: -0.55, z: -0.225}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1868192657}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2059285760
 GameObject:
   m_ObjectHideFlags: 0
@@ -4682,7 +4753,7 @@ Transform:
   m_LocalRotation: {x: 0.000000059604645, y: 0.00000017881395, z: 0.0000001192093,
     w: 1}
   m_LocalPosition: {x: -0.00000012842843, y: 0.27614462, z: 0.000000154924}
-  m_LocalScale: {x: 0.9, y: 0.9, z: 0.9}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2880772578717468061}
@@ -5315,7 +5386,7 @@ Transform:
   m_LocalRotation: {x: 0.000000059604645, y: -0.00000017881395, z: -0.0000001192093,
     w: 1}
   m_LocalPosition: {x: 0.00000012820418, y: 0.27614462, z: 0.0000000023361064}
-  m_LocalScale: {x: 0.9, y: 0.9, z: 0.9}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7115284880340438732}

@@ -16,11 +16,15 @@ public class UserSettings : MonoBehaviour
     public KeyCode moveRight = KeyCode.D;
     public KeyCode jumpKey = KeyCode.Space;
     public KeyCode crouchKey = KeyCode.LeftControl;
-    public KeyCode slideKey = KeyCode.LeftControl;
+    public KeyCode slideKey = KeyCode.LeftControl; // optional duplicate for crouch slide if needed
 
     [Header("Mouse Axes")]
     public string mouseXAxis = "Mouse X";
     public string mouseYAxis = "Mouse Y";
+
+    [Header("Movement Axes")]
+    public string horizontalAxis = "Horizontal";
+    public string verticalAxis = "Vertical";
 
     [Header("Mouse Settings")]
     [Range(0f, 100f)] public float mouseSensitivity = 50f;
