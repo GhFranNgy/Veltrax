@@ -188,18 +188,25 @@ namespace EasyPeasyFirstPersonController
 
         // ================= NECK =================
 
-        private void HandleNeckRotation()
-        {
-            if (neckBone == null) return;
+		private void HandleNeckRotation()
+		{
+				if (neckBone == null || playerCamera == null) return;
 
-            float mouseY = Input.GetAxis(userSettings.mouseYAxis);
-            if (userSettings.invertMouseY)
-                mouseY *= -1f;
+				float cameraPitch = playerCamera.localEulerAngles.x;
 
-            neckVerticalRotation -= mouseY;
-            neckVerticalRotation = Mathf.Clamp(neckVerticalRotation, -neckRotationLimit, neckRotationLimit);
-            neckBone.localRotation = Quaternion.Euler(neckVerticalRotation, 0f, 0f);
-        }
+				// Convert 0–360 to -180–180
+				if (cameraPitch > 180f)
+						cameraPitch -= 360f;
+
+				neckVerticalRotation = Mathf.Clamp(
+						cameraPitch,
+						-neckRotationLimit,
+						neckRotationLimit
+				);
+
+				neckBone.localRotation = Quaternion.Euler(neckVerticalRotation, 0f, 0f);
+		}
+
 
         // ================= GROUND CHECK =================
 

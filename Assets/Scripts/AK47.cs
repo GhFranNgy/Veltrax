@@ -155,9 +155,12 @@ public class AK47 : MonoBehaviour
 
     void UpdateVerticalLook()
     {
-        float mouseY = Input.GetAxis(userSettings.mouseYAxis);
-        verticalRotation -= mouseY;
-        verticalRotation = Mathf.Clamp(verticalRotation, -verticalRotationLimit, verticalRotationLimit);
+        if (!playerCamera || !verticalPivot) return;
+
+        float cameraPitch = playerCamera.transform.localEulerAngles.x;
+        if (cameraPitch > 180f) cameraPitch -= 360f;
+
+        verticalRotation = Mathf.Clamp(cameraPitch, -verticalRotationLimit, verticalRotationLimit);
     }
 
     void Shoot()
@@ -183,6 +186,26 @@ public class AK47 : MonoBehaviour
         if (slideTransform && slideEndTransform)
             slideTransform.localPosition = slideEndTransform.localPosition;
 
+        // === SHELL EJECTION (USING PROVIDED MECHANISM) ===
+        if (shellCasingPrefab && shellEjectPoint)
+        {
+            Quaternion shellRot = Quaternion.LookRotation(-playerCamera.transform.forward);
+            GameObject shell = Instantiate(shellCasingPrefab, shellEjectPoint.position, shellRot);
+
+            Rigidbody rb = shell.GetComponent<Rigidbody>();
+            if (rb)
+            {
+                Vector3 force =
+                    shellEjectPoint.right * Random.Range(2f, 3f) +
+                    shellEjectPoint.forward * 0.4f;
+
+                rb.AddForce(force, ForceMode.Impulse);
+                rb.AddTorque(Random.insideUnitSphere * 2f, ForceMode.Impulse);
+            }
+
+            Destroy(shell, 1f);
+        }
+
         if (audioSource && shootSound)
             audioSource.PlayOneShot(shootSound, shootVolume);
     }
@@ -207,11 +230,7 @@ public class AK47 : MonoBehaviour
         float mouseX = Input.GetAxis(userSettings.mouseXAxis);
         float mouseY = Input.GetAxis(userSettings.mouseYAxis);
 
-        Vector3 sway = new Vector3(
-            mouseY,
-            -mouseX,
-            0f
-        ) * swayAmount;
+        Vector3 sway = new Vector3(mouseY, -mouseX, 0f) * swayAmount;
 
         transform.localRotation = Quaternion.Slerp(
             transform.localRotation,
@@ -227,7 +246,6 @@ public class AK47 : MonoBehaviour
 
         float h = Input.GetAxis(userSettings.horizontalAxis);
         float v = Input.GetAxis(userSettings.verticalAxis);
-
         bool isMoving = Mathf.Abs(h) + Mathf.Abs(v) > 0.1f;
 
         bool running =
