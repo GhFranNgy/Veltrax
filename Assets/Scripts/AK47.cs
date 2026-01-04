@@ -14,16 +14,12 @@ public class AK47 : MonoBehaviour
     [Header("=== REFERENCES ===")]
     [SerializeField] private Camera playerCamera;
     [SerializeField] private Transform gunHolder;
+    [SerializeField] private Transform verticalPivot;
     [SerializeField] private Transform muzzlePoint;
     [SerializeField] private Transform shellEjectPoint;
     [SerializeField] private EasyPeasyFirstPersonController.FirstPersonController playerController;
 
-    [Header("=== ROTATION ===")]
-    [SerializeField] private Transform verticalPivot;   // NEW
-    [SerializeField] private float verticalRotationLimit = 80f; // NEW
-    private float verticalRotation; // NEW
-
-    [Header("=== SLIDE / BOLT ===")]
+    [Header("=== SLIDE ===")]
     [SerializeField] private Transform slideTransform;
     [SerializeField] private Transform slideEndTransform;
     [SerializeField] private float slideReturnSpeed = 18f;
@@ -36,116 +32,99 @@ public class AK47 : MonoBehaviour
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip shootSound;
     [SerializeField] private AudioClip reloadSound;
-    [Range(0f, 1f)]
-    [SerializeField] private float shootVolume = 0.8f;
-    [Range(0f, 1f)]
-    [SerializeField] private float reloadVolume = 0.8f;
+    [Range(0f, 1f)] public float shootVolume = 0.8f;
+    [Range(0f, 1f)] public float reloadVolume = 0.8f;
 
     [Header("=== WEAPON POSITIONS ===")]
     [SerializeField] private Transform hipPosition;
     [SerializeField] private Transform aimPosition;
-    [SerializeField] private Transform runPosition;
+    [SerializeField] private Transform crouchHipPosition;
+    [SerializeField] private Transform crouchAimPosition;
     [SerializeField] private Transform reloadPosition;
+    [SerializeField] private Transform crouchReloadPosition;
+    [SerializeField] private Transform runPosition;
 
-    [Header("=== AK-47 STATS ===")]
+
+    [Header("=== STATS ===")]
     [SerializeField] private int magazineSize = 30;
     [SerializeField] private float reloadTime = 2.45f;
     [SerializeField] private float fireRateRPM = 600f;
-    [SerializeField] private float range = 150f;
 
     [Header("=== RECOIL ===")]
     [SerializeField] private float recoilKickBack = 0.1f;
     [SerializeField] private float recoilRotation = 5f;
     [SerializeField] private float recoilRecoverySpeed = 8f;
 
-    [Header("=== AIMING SETTINGS ===")]
-    [Range(0f,1f)] public float aimingRecoilMultiplier = 0.5f;
-    [Range(0f,1f)] public float aimingBobMultiplier = 0.3f;
-
     [Header("=== SWAY ===")]
     [SerializeField] private float swayAmount = 1.5f;
     [SerializeField] private float swaySmooth = 6f;
 
-    [Header("=== VIEW BOBBING ===")]
-    [SerializeField] private float walkBobAmount = 0.05f;
-    [SerializeField] private float runBobAmount = 0.1f;
-    [SerializeField] private float aimBobAmount = 0.02f;
+    [Header("=== BOB ===")]
+    [SerializeField] private float walkBob = 0.05f;
+    [SerializeField] private float runBob = 0.1f;
     [SerializeField] private float bobSpeed = 8f;
 
-    [Header("=== MOVEMENT ===")]
+    [Header("=== LOOK ===")]
+    [SerializeField] private float verticalRotationLimit = 80f;
+
+    [Header("=== LERP ===")]
     [SerializeField] private float positionLerpSpeed = 8f;
 
-    private int currentAmmo;
-    private bool isReloading;
-    private float nextFireTime;
-    private bool canShoot = true;
+    int currentAmmo;
+    float nextFireTime;
+    bool canShoot = true;
+    bool isReloading;
 
-    private Quaternion initialWeaponRotation;
-    private Vector3 slideStartLocalPos;
-    private Vector3 slideEndLocalPos;
+    float verticalRotation;
+    float bobTimer;
 
-    private Vector3 currentRecoilPosition;
-    private Vector3 targetRecoilPosition;
-    private Vector3 currentRecoilRotation;
-    private Vector3 targetRecoilRotation;
+    Vector3 recoilPos, recoilPosTarget;
+    Vector3 recoilRot, recoilRotTarget;
 
-    private KeyCode fireKey, aimKey, reloadKey, runKey, switchFireModeKey;
-    private float bobTimer;
-    private Vector3 initialGunLocalPos;
+    Vector3 slideStartPos;
+    Quaternion initialWeaponRotation;
+
+    KeyCode fireKey, aimKey, reloadKey, runKey, crouchKey, switchFireModeKey, moveForward, moveBackward, moveLeft, moveRight;
 
     void Start()
     {
-        if (userSettings != null)
+        if (userSettings)
         {
             fireKey = userSettings.fireKey;
             aimKey = userSettings.aimKey;
             reloadKey = userSettings.reloadKey;
             runKey = userSettings.runKey;
+            crouchKey = userSettings.crouchKey;
             switchFireModeKey = userSettings.switchFireModeKey;
+            moveLeft = userSettings.moveLeft;
+            moveRight = userSettings.moveRight;
+            moveForward = userSettings.moveForward;
+            moveBackward = userSettings.moveBackward;
         }
 
         currentAmmo = magazineSize;
         initialWeaponRotation = transform.localRotation;
 
-        if (slideTransform && slideEndTransform)
-        {
-            slideStartLocalPos = slideTransform.localPosition;
-            slideEndLocalPos = slideEndTransform.localPosition;
-        }
-
-        nextFireTime = Time.time;
-
-        if (gunHolder != null) initialGunLocalPos = gunHolder.localPosition;
+        if (slideTransform)
+            slideStartPos = slideTransform.localPosition;
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(switchFireModeKey))
-        {
-            fireMode = fireMode == FireMode.Single ? FireMode.Automatic : FireMode.Single;
-            Debug.Log("Fire Mode: " + fireMode);
-        }
-
+        HandleFireModeSwitch();
         HandleInput();
-        HandleVerticalRotation();   // NEW
-        HandleWeaponSway();
-        HandleRecoilAndPosition();
-        ReturnSlideForward();
+        UpdateVerticalLook();
+        HandleSway();
+        HandleWeaponTransform();
+        ReturnSlide();
     }
 
-    // -----------------------------
-    // NEW VERTICAL ROTATION METHOD
-    // -----------------------------
-    void HandleVerticalRotation()
+    // ================= INPUT =================
+
+    void HandleFireModeSwitch()
     {
-        if (verticalPivot == null) return;
-
-        float mouseY = Input.GetAxis("Mouse Y");
-
-        verticalRotation -= mouseY;
-        verticalRotation = Mathf.Clamp(verticalRotation, -verticalRotationLimit, verticalRotationLimit);
-
-        verticalPivot.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+        if (Input.GetKeyDown(switchFireModeKey))
+            fireMode = fireMode == FireMode.Single ? FireMode.Automatic : FireMode.Single;
     }
 
     void HandleInput()
@@ -155,17 +134,22 @@ public class AK47 : MonoBehaviour
         if (Input.GetKeyDown(reloadKey))
             StartCoroutine(Reload());
 
-        if (fireMode == FireMode.Single)
+        if (Input.GetKey(fireKey) && Time.time >= nextFireTime)
         {
-            if (canShoot && Input.GetKey(fireKey) && Time.time >= nextFireTime)
-                Shoot();
-        }
-        else if (fireMode == FireMode.Automatic)
-        {
-            if (Input.GetKey(fireKey) && Time.time >= nextFireTime)
+            if (fireMode == FireMode.Automatic || canShoot)
                 Shoot();
         }
     }
+
+    // ================= LOOK =================
+
+    void UpdateVerticalLook()
+    {
+        verticalRotation -= Input.GetAxis("Mouse Y");
+        verticalRotation = Mathf.Clamp(verticalRotation, -verticalRotationLimit, verticalRotationLimit);
+    }
+
+    // ================= SHOOT =================
 
     void Shoot()
     {
@@ -175,37 +159,11 @@ public class AK47 : MonoBehaviour
         currentAmmo--;
         nextFireTime = Time.time + (60f / fireRateRPM);
 
-        float multiplier = Input.GetKey(aimKey) ? aimingRecoilMultiplier : 1f;
-
-        targetRecoilPosition += Vector3.back * recoilKickBack * multiplier;
-        targetRecoilRotation += new Vector3(
-            -recoilRotation * multiplier,
-            Random.Range(-recoilRotation / 2f, recoilRotation / 2f) * multiplier,
-            0f
-        );
+        recoilPosTarget += Vector3.back * recoilKickBack;
+        recoilRotTarget += new Vector3(-recoilRotation, Random.Range(-recoilRotation, recoilRotation), 0f);
 
         if (slideTransform && slideEndTransform)
-            slideTransform.localPosition = slideEndLocalPos;
-
-        if (shellCasingPrefab && shellEjectPoint)
-        {
-            Quaternion shellRot = Quaternion.LookRotation(-playerCamera.transform.forward);
-            GameObject shell = Instantiate(shellCasingPrefab, shellEjectPoint.position, shellRot);
-            Rigidbody rb = shell.GetComponent<Rigidbody>();
-            if (rb)
-            {
-                Vector3 ejectDir = shellEjectPoint.right * Random.Range(1.8f, 2.6f) + shellEjectPoint.forward * 0.3f;
-                rb.AddForce(ejectDir, ForceMode.Impulse);
-                rb.AddTorque(Random.insideUnitSphere * 2f, ForceMode.Impulse);
-            }
-            Destroy(shell, 5f);
-        }
-
-        if (muzzleFlashPrefab && muzzlePoint)
-        {
-            GameObject flash = Instantiate(muzzleFlashPrefab, muzzlePoint.position, muzzlePoint.rotation, muzzlePoint);
-            Destroy(flash, 0.05f);
-        }
+            slideTransform.localPosition = slideEndTransform.localPosition;
 
         if (audioSource && shootSound)
             audioSource.PlayOneShot(shootSound, shootVolume);
@@ -213,7 +171,7 @@ public class AK47 : MonoBehaviour
 
     IEnumerator Reload()
     {
-        if (currentAmmo == magazineSize || isReloading) yield break;
+        if (isReloading || currentAmmo == magazineSize) yield break;
 
         isReloading = true;
 
@@ -226,64 +184,88 @@ public class AK47 : MonoBehaviour
         isReloading = false;
     }
 
-    void HandleWeaponSway()
+    // ================= VISUALS =================
+
+    void HandleSway()
     {
-        float mouseX = Input.GetAxis("Mouse X");
-        float mouseY = Input.GetAxis("Mouse Y");
-        Vector3 sway = new Vector3(mouseY, -mouseX, 0f) * swayAmount;
-        Quaternion targetRot = Quaternion.Euler(sway);
-        transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRot * initialWeaponRotation, Time.deltaTime * swaySmooth);
+        Vector3 sway = new Vector3(
+            Input.GetAxis("Mouse Y"),
+            -Input.GetAxis("Mouse X"),
+            0f
+        ) * swayAmount;
+
+        transform.localRotation = Quaternion.Slerp(
+            transform.localRotation,
+            Quaternion.Euler(sway) * initialWeaponRotation,
+            Time.deltaTime * swaySmooth
+        );
     }
 
-    void HandleRecoilAndPosition()
+    void HandleWeaponTransform()
     {
-        currentRecoilPosition = Vector3.Lerp(currentRecoilPosition, targetRecoilPosition, recoilRecoverySpeed * Time.deltaTime);
-        currentRecoilRotation = Vector3.Lerp(currentRecoilRotation, targetRecoilRotation, recoilRecoverySpeed * Time.deltaTime);
-
-        Transform target;
         bool aiming = Input.GetKey(aimKey);
-        bool running = Input.GetKey(runKey) && Input.GetAxis("Vertical") > 0;
+        bool crouching = Input.GetKey(crouchKey);
 
-        if (isReloading && reloadPosition != null) target = reloadPosition;
-        else if (running) target = runPosition;
-        else if (aiming) target = aimPosition;
-        else target = hipPosition;
+        // 🏃 RUN ONLY IF MOVING
+        bool isMoving = Mathf.Abs(Input.GetAxis("Horizontal")) + Mathf.Abs(Input.GetAxis("Vertical")) > 0.1f;
+        bool running = Input.GetKey(runKey) && Input.GetKey(moveForward) && !Input.GetKey(moveBackward) || Input.GetKey(runKey) && Input.GetKey(moveForward) && Input.GetKey(moveLeft) && !Input.GetKey(moveBackward) || Input.GetKey(runKey) && Input.GetKey(moveForward) && Input.GetKey(moveRight) && !Input.GetKey(moveBackward);
 
-        Vector3 targetPos = target.localPosition + currentRecoilPosition;
-        Quaternion targetRot = target.localRotation * Quaternion.Euler(currentRecoilRotation);
+        Transform target =
+            isReloading && !crouching ? reloadPosition :
+            isReloading && crouching ? crouchReloadPosition :
+            running ? runPosition :
+            aiming && crouching ? crouchAimPosition :
+            aiming ? aimPosition :
+            crouching ? crouchHipPosition :
+            hipPosition;
 
-        if (playerController != null && playerController.isGrounded)
+        // Recoil
+        recoilPos = Vector3.Lerp(recoilPos, recoilPosTarget, recoilRecoverySpeed * Time.deltaTime);
+        recoilRot = Vector3.Lerp(recoilRot, recoilRotTarget, recoilRecoverySpeed * Time.deltaTime);
+
+        recoilPosTarget = Vector3.zero;
+        recoilRotTarget = Vector3.zero;
+
+        Vector3 finalPos = target.localPosition + recoilPos;
+
+        // Bob
+        if (playerController && playerController.isGrounded && isMoving)
         {
-            float moveInput = Mathf.Abs(Input.GetAxis("Vertical")) + Mathf.Abs(Input.GetAxis("Horizontal"));
-            if (moveInput > 0.01f)
-            {
-                float speed = running ? 1.5f : 1f;
-                if (aiming) speed *= 0.5f;
-
-                float bobAmount = walkBobAmount;
-                if (running) bobAmount = runBobAmount;
-                if (aiming) bobAmount = aimBobAmount * aimingBobMultiplier;
-
-                bobTimer += Time.deltaTime * bobSpeed * speed;
-                Vector3 bobOffset = new Vector3(
-                    Mathf.Sin(bobTimer) * bobAmount,
-                    Mathf.Cos(bobTimer * 2) * bobAmount,
-                    0f
-                );
-                targetPos += bobOffset;
-            }
+            bobTimer += Time.deltaTime * bobSpeed * (running ? 1.5f : 1f);
+            float bob = running ? runBob : walkBob;
+            finalPos += new Vector3(Mathf.Sin(bobTimer) * bob, Mathf.Cos(bobTimer * 2) * bob, 0);
         }
 
-        gunHolder.localPosition = Vector3.Lerp(gunHolder.localPosition, targetPos, Time.deltaTime * positionLerpSpeed);
-        gunHolder.localRotation = Quaternion.Slerp(gunHolder.localRotation, targetRot, Time.deltaTime * positionLerpSpeed);
+        gunHolder.localPosition = Vector3.Lerp(
+            gunHolder.localPosition,
+            finalPos,
+            Time.deltaTime * positionLerpSpeed
+        );
 
-        targetRecoilPosition = Vector3.zero;
-        targetRecoilRotation = Vector3.zero;
+        // 🔒 ROTATION LOCK
+        if (verticalPivot)
+        {
+            if (running || isReloading)
+                verticalPivot.localRotation = Quaternion.identity;
+            else
+                verticalPivot.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+        }
+
+        gunHolder.localRotation = Quaternion.Slerp(
+            gunHolder.localRotation,
+            target.localRotation * Quaternion.Euler(recoilRot),
+            Time.deltaTime * positionLerpSpeed
+        );
     }
 
-    void ReturnSlideForward()
+    void ReturnSlide()
     {
         if (!slideTransform) return;
-        slideTransform.localPosition = Vector3.Lerp(slideTransform.localPosition, slideStartLocalPos, Time.deltaTime * slideReturnSpeed);
+
+        slideTransform.localPosition = Vector3.Lerp(
+            slideTransform.localPosition,
+            slideStartPos,
+            Time.deltaTime * slideReturnSpeed
+        );
     }
 }
