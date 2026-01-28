@@ -6,7 +6,7 @@ public class AK47 : MonoBehaviour
     public enum FireMode { Single, Automatic }
 
     [Header("=== FIRE MODE ===")]
-    public FireMode fireMode = FireMode.Single;
+    public FireMode fireMode = FireMode.Automatic;
 
     [Header("=== USER SETTINGS ===")]
     public UserSettings userSettings;
@@ -66,7 +66,6 @@ public class AK47 : MonoBehaviour
 
     [Header("=== EFFECT MULTIPLIERS ===")]
     [SerializeField] private float aimBobMultiplier = 0.3f;
-    [SerializeField] private float walkBobMultiplier = 1f;
     [SerializeField] private float aimRecoilMultiplier = 0.5f;
 
     [Header("=== LOOK ===")]
@@ -124,18 +123,18 @@ public class AK47 : MonoBehaviour
 
     void Update()
     {
-        HandleFireModeSwitch();
+        FireModeSwitch();
         HandleInput();
-        UpdateVerticalLook();
-        HandleSway();
+        VerticalWeaponRotation();
+        WeaponSway();
         HandleWeaponTransform();
         ReturnSlide();
     }
 
-    void HandleFireModeSwitch()
+    void FireModeSwitch()
     {
         if (Input.GetKeyDown(switchFireModeKey))
-            fireMode = fireMode == FireMode.Single ? FireMode.Automatic : FireMode.Single;
+            fireMode = fireMode == FireMode.Automatic ? FireMode.Single : FireMode.Automatic;
     }
 
     void HandleInput()
@@ -143,22 +142,23 @@ public class AK47 : MonoBehaviour
         if (!Input.GetKey(fireKey))
             canShoot = true;
 
-        if (Input.GetKeyDown(reloadKey))
-            StartCoroutine(Reload());
-
         if (Input.GetKey(fireKey) && Time.time >= nextFireTime)
         {
             if (fireMode == FireMode.Automatic || canShoot)
                 Shoot();
         }
+
+        if (Input.GetKeyDown(reloadKey))
+            StartCoroutine(Reload());
     }
 
-    void UpdateVerticalLook()
+    void VerticalWeaponRotation()
     {
         if (!playerCamera || !verticalPivot) return;
 
         float cameraPitch = playerCamera.transform.localEulerAngles.x;
-        if (cameraPitch > 180f) cameraPitch -= 360f;
+        if (cameraPitch > 180f)
+            cameraPitch -= 360f;
 
         verticalRotation = Mathf.Clamp(cameraPitch, -verticalRotationLimit, verticalRotationLimit);
     }
@@ -186,7 +186,6 @@ public class AK47 : MonoBehaviour
         if (slideTransform && slideEndTransform)
             slideTransform.localPosition = slideEndTransform.localPosition;
 
-        // === SHELL EJECTION (USING PROVIDED MECHANISM) ===
         if (shellCasingPrefab && shellEjectPoint)
         {
             Quaternion shellRot = Quaternion.LookRotation(-playerCamera.transform.forward);
@@ -225,7 +224,7 @@ public class AK47 : MonoBehaviour
         isReloading = false;
     }
 
-    void HandleSway()
+    void WeaponSway()
     {
         float mouseX = Input.GetAxis(userSettings.mouseXAxis);
         float mouseY = Input.GetAxis(userSettings.mouseYAxis);
@@ -263,11 +262,33 @@ public class AK47 : MonoBehaviour
             crouching ? crouchHipPosition :
             hipPosition;
 
+        // ===== BOBBING LOGIC START =====
+        Vector3 bobOffset = Vector3.zero;
+
+        if (isMoving && !isReloading)
+        {
+            bobTimer += Time.deltaTime * bobSpeed * (running ? 1.5f : 1f);
+
+            float bobAmount = running ? runBob : walkBob;
+            if (aiming && !running) bobAmount *= aimBobMultiplier;
+
+            bobOffset = new Vector3(
+                Mathf.Sin(bobTimer) * bobAmount,
+                Mathf.Cos(bobTimer * 2f) * bobAmount,
+                0f
+            );
+        }
+        else
+        {
+            bobTimer = 0f;
+        }
+        // ===== BOBBING LOGIC END =====
+
         if (recoilTarget)
         {
             gunHolder.localPosition = Vector3.Lerp(
                 gunHolder.localPosition,
-                target.localPosition + recoilTarget.localPosition,
+                target.localPosition + recoilTarget.localPosition + bobOffset,
                 Time.deltaTime * positionLerpSpeed
             );
 

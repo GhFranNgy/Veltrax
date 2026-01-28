@@ -13,8 +13,8 @@ GameObject:
   - component: {fileID: 2131625892846542336}
   - component: {fileID: -8728614441889995518}
   - component: {fileID: -1393107031814460593}
-  m_Layer: 0
-  m_Name: 7.62x51_Bullet_No_Projectile_prefab
+  m_Layer: 7
+  m_Name: 7.62x51_Case_TP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
